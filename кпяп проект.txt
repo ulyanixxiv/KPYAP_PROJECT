@@ -1,0 +1,275 @@
+using System;
+
+enum Frequency { 
+    Weekly, 
+    Monthly, 
+    Yearly
+}
+
+class Person
+{
+    private string name;
+    private string surname;
+    private DateTime birthDate;
+
+    public Person(string name, string surname, DateTime birthDate)
+    {
+        this.name = name;
+        this.surname = surname;
+        this.birthDate = birthDate;
+    }
+
+    public Person()
+    {
+        name = "Unknown";
+        surname = "Unknown";
+        birthDate = new DateTime(2000, 1, 1);
+    }
+
+    public string Name { 
+        get => name; 
+        set => name = value; 
+    }
+    public string Surname { 
+        get => surname; 
+        set => surname = value; 
+    }
+    public DateTime BirthDate { 
+        get => birthDate; 
+        set => birthDate = value; 
+    }
+    public int BirthYear
+    {
+        get => birthDate.Year;
+        set => birthDate = new DateTime(value, birthDate.Month, birthDate.Day);
+    }
+
+    public override string ToString()
+        => $"{name} {surname}, {birthDate:dd.MM.yyyy}";
+
+    public virtual string ToShortString()
+        => $"{name} {surname}";
+}
+
+class Article
+{
+    public Person Author { 
+        get; 
+        set; 
+    }
+    public string Title { 
+        get; 
+        set; 
+    }
+    public double Rating { 
+        get; 
+        set; 
+    }
+
+    public Article(Person author, string title, double rating)
+    {
+        Author = author;
+        Title = title;
+        Rating = rating;
+    }
+
+    public Article()
+    {
+        Author = new Person();
+        Title = "Без названия";
+        Rating = 0.0;
+    }
+
+    public override string ToString()
+        => $"Статья: {Title}, Автор: {Author.ToShortString()}, Рейтинг: {Rating}";
+}
+
+class Magazine
+{
+    private string title;
+    private Frequency frequency;
+    private DateTime releaseDate;
+    private int circulation;
+    private Article[] articles;
+
+    public Magazine(string title, Frequency frequency, DateTime releaseDate, int circulation)
+    {
+        this.title = title;
+        this.frequency = frequency;
+        this.releaseDate = releaseDate;
+        this.circulation = circulation;
+        articles = new Article[0];
+    }
+
+    public Magazine()
+    {
+        title = "Без названия";
+        frequency = Frequency.Monthly;
+        releaseDate = DateTime.Today;
+        circulation = 1000;
+        articles = new Article[0];
+    }
+
+    public string Title { 
+        get => title; 
+        set => title = value; 
+    }
+    public Frequency Frequency { 
+        get => frequency; 
+        set => frequency = value; 
+    }
+    public DateTime ReleaseDate { 
+        get => releaseDate; 
+        set => releaseDate = value; 
+    }
+    public int Circulation { 
+        get => circulation; 
+        set => circulation = value; 
+    }
+    public Article[] Articles { 
+        get => articles; 
+        set => articles = value ?? new Article[0]; //оператор ?? говорит взять левую часть, если она не null, а если null- взять правую часть
+    }
+
+    //средний рейтинг статей
+    public double AverageRating
+    {
+        get
+        {
+            if (articles.Length == 0) return 0.0;
+            double sum = 0;
+            foreach (var a in articles) sum += a.Rating;
+            return sum / articles.Length;
+        }
+    }
+
+    //индексатор: true, если частота совпадает
+    public bool this[Frequency f] => frequency == f;
+
+    //добавление статей
+    public void AddArticles(params Article[] newArticles)
+    {
+        if (newArticles == null || newArticles.Length == 0) return;
+
+        Article[] temp = new Article[articles.Length + newArticles.Length];
+        articles.CopyTo(temp, 0);
+        Array.Copy(newArticles, 0, temp, articles.Length, newArticles.Length);
+        articles = temp;
+    }
+
+    public override string ToString()
+    {
+        string result = $"Журнал: {title}\n" +
+                        $"Периодичность: {frequency}\n" +
+                        $"Дата выпуска: {releaseDate:dd.MM.yyyy}\n" +
+                        $"Тираж: {circulation}\n" +
+                        $"Средний рейтинг: {AverageRating:F2}\n" +
+                        $"Статей: {articles.Length}\n";
+
+        if (articles.Length > 0)
+        {
+            result += "Список статей:\n";
+            foreach (var a in articles)
+                result += a + "\n";
+        }
+        return result;
+    }
+
+    public virtual string ToShortString()
+        => $"Журнал: {title}, Периодичность: {frequency}, " +
+           $"Дата: {releaseDate:dd.MM.yyyy}, Тираж: {circulation}, " +
+           $"Средний рейтинг: {AverageRating:F2}";
+}
+
+class Program
+{
+    static void Main()
+    {
+        // 1.создаём журнал и выводим ToShortString
+        Magazine mag = new Magazine();
+        Console.WriteLine("1.Журнал по умолчанию:");
+        Console.WriteLine(mag.ToShortString());
+        Console.WriteLine();
+
+        // 6.индексатор
+        Console.WriteLine("6.Проверка индексатора:");
+        Console.WriteLine($"Weekly:  {mag[Frequency.Weekly]}");
+        Console.WriteLine($"Monthly: {mag[Frequency.Monthly]}");
+        Console.WriteLine($"Yearly:  {mag[Frequency.Yearly]}");
+        Console.WriteLine();
+
+        // 7.присваиваем значения свойствам
+        mag.Title = "National Geographic";
+        mag.Frequency = Frequency.Monthly;
+        mag.ReleaseDate = new DateTime(2025, 4, 1);
+        mag.Circulation = 500000;
+
+        Console.WriteLine("7.После присваивания свойств:");
+        Console.WriteLine(mag.ToString());
+        Console.WriteLine();
+
+        // 8.добавляем статьи
+        Person p1 = new Person("Иванов И.И.", "Иванов", new DateTime(1985, 5, 10));
+        Person p2 = new Person("Петрова А.С.", "Петрова", new DateTime(1990, 8, 20));
+
+        mag.AddArticles(
+            new Article(p1,"Открытия в Антарктиде", 9.5),
+            new Article(p2,"Жизнь под водой", 8.7),
+            new Article(new Person("Сидоров П.П.", "Сидоров", new DateTime(1978, 3, 15)), "Космос ближе", 9.9)
+        );
+
+        Console.WriteLine("8.После добавления статей:");
+        Console.WriteLine(mag.ToString());
+        Console.WriteLine();
+
+        // 9.замер времени для массивов типа Article
+        Console.Write("Введите nrow и ncolumn (через пробел/запятую/;): ");
+        string[] parts = Console.ReadLine().Split(new char[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        int nrow = int.Parse(parts[0]);
+        int ncolumn = int.Parse(parts[1]);
+        int total = nrow * ncolumn;
+
+        //создаём массивы
+        Article[] arr1D = new Article[total];
+        for (int i = 0; i < total; i++) arr1D[i] = new Article();
+
+        Article[,] arr2D = new Article[nrow, ncolumn];
+        for (int i = 0; i < nrow; i++)
+            for (int j = 0; j < ncolumn; j++)
+                arr2D[i, j] = new Article();
+
+        Article[][] arrJagged = new Article[nrow][];
+        for (int i = 0; i < nrow; i++)
+        {
+            arrJagged[i] = new Article[ncolumn];
+            for (int j = 0; j < ncolumn; j++)
+                arrJagged[i][j] = new Article();
+        }
+
+        int t1, t2;
+
+        t1 = Environment.TickCount;
+        for (int i = 0; i < total; i++) arr1D[i].Rating = 5.5;
+        t2 = Environment.TickCount;
+        int time1D = t2 - t1;
+
+        t1 = Environment.TickCount;
+        for (int i = 0; i < nrow; i++)
+            for (int j = 0; j < ncolumn; j++)
+                arr2D[i, j].Rating = 5.5;
+        t2 = Environment.TickCount;
+        int time2D = t2 - t1;
+
+        t1 = Environment.TickCount;
+        for (int i = 0; i < nrow; i++)
+            for (int j = 0; j < ncolumn; j++)
+                arrJagged[i][j].Rating = 5.5;
+        t2 = Environment.TickCount;
+        int timeJagged = t2 - t1;
+
+        Console.WriteLine($"Размер массивов: {nrow} * {ncolumn} = {total} элементов");
+        Console.WriteLine($"Одномерный: {time1D} мс");
+        Console.WriteLine($"Прямоугольный: {time2D} мс");
+        Console.WriteLine($"Ступенчатый: {timeJagged} мс");
+    }
+}
