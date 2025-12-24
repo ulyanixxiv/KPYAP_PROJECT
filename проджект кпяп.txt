@@ -1,0 +1,697 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+enum Frequency
+{
+    Weekly,
+    Monthly,
+    Yearly
+}
+
+interface IRateAndCopy
+{
+    double Rating { get; }
+    object DeepCopy();
+}
+
+class Person : IEquatable<Person>
+{
+    private string name;
+    private string surname;
+    private DateTime birthDate;
+
+    public Person(string name, string surname, DateTime birthDate)
+    {
+        this.name = name;
+        this.surname = surname;
+        this.birthDate = birthDate;
+    }
+
+    public Person()
+    {
+        name = "Unknown";
+        surname = "Unknown";
+        birthDate = new DateTime(2000, 1, 1);
+    }
+
+    public string Name
+    {
+        get => name;
+        set => name = value;
+    }
+    
+    public string Surname
+    {
+        get => surname;
+        set => surname = value;
+    }
+    
+    public DateTime BirthDate
+    {
+        get => birthDate;
+        set => birthDate = value;
+    }
+    
+    public int BirthYear
+    {
+        get => birthDate.Year;
+        set => birthDate = new DateTime(value, birthDate.Month, birthDate.Day);
+    }
+
+    // Переопределение метода Equals
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+            return false;
+
+        Person other = (Person)obj;
+        return name == other.name && 
+               surname == other.surname && 
+               birthDate == other.birthDate;
+    }
+
+    // Реализация IEquatable<T>
+    public bool Equals(Person other)
+    {
+        if (other == null) return false;
+        return name == other.name && 
+               surname == other.surname && 
+               birthDate == other.birthDate;
+    }
+
+    // Переопределение GetHashCode
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 + (name != null ? name.GetHashCode() : 0);
+            hash = hash * 23 + (surname != null ? surname.GetHashCode() : 0);
+            hash = hash * 23 + birthDate.GetHashCode();
+            return hash;
+        }
+    }
+
+    // Переопределение операторов == и !=
+    public static bool operator ==(Person left, Person right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+        if (left is null || right is null)
+            return false;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Person left, Person right)
+    {
+        return !(left == right);
+    }
+
+    // Метод DeepCopy
+    public virtual object DeepCopy()
+    {
+        return new Person(name, surname, birthDate);
+    }
+
+    public override string ToString()
+        => $"{name} {surname}, {birthDate:dd.MM.yyyy}";
+
+    public virtual string ToShortString()
+        => $"{name} {surname}";
+}
+
+class Edition : IEquatable<Edition>
+{
+    protected string title;
+    protected DateTime releaseDate;
+    protected int circulation;
+
+    public Edition(string title, DateTime releaseDate, int circulation)
+    {
+        this.title = title;
+        this.releaseDate = releaseDate;
+        this.Circulation = circulation; // Используем свойство для проверки
+    }
+
+    public Edition()
+    {
+        title = "Без названия";
+        releaseDate = DateTime.Today;
+        circulation = 1000;
+    }
+
+    public string Title
+    {
+        get => title;
+        set => title = value;
+    }
+
+    public DateTime ReleaseDate
+    {
+        get => releaseDate;
+        set => releaseDate = value;
+    }
+
+    public int Circulation
+    {
+        get => circulation;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(Circulation), 
+                    "Тираж не может быть отрицательным. Допустимые значения: >= 0");
+            circulation = value;
+        }
+    }
+
+    // Переопределение метода Equals
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+            return false;
+
+        Edition other = (Edition)obj;
+        return title == other.title && 
+               releaseDate == other.releaseDate && 
+               circulation == other.circulation;
+    }
+
+    // Реализация IEquatable<T>
+    public bool Equals(Edition other)
+    {
+        if (other == null) return false;
+        return title == other.title && 
+               releaseDate == other.releaseDate && 
+               circulation == other.circulation;
+    }
+
+    // Переопределение GetHashCode
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 + (title != null ? title.GetHashCode() : 0);
+            hash = hash * 23 + releaseDate.GetHashCode();
+            hash = hash * 23 + circulation.GetHashCode();
+            return hash;
+        }
+    }
+
+    // Переопределение операторов == и !=
+    public static bool operator ==(Edition left, Edition right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+        if (left is null || right is null)
+            return false;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Edition left, Edition right)
+    {
+        return !(left == right);
+    }
+
+    // Метод DeepCopy
+    public virtual object DeepCopy()
+    {
+        return new Edition(title, releaseDate, circulation);
+    }
+
+    public override string ToString()
+    {
+        return $"Издание: {title}\n" +
+               $"Дата выхода: {releaseDate:dd.MM.yyyy}\n" +
+               $"Тираж: {circulation}";
+    }
+}
+
+class Article : IRateAndCopy, IEquatable<Article>
+{
+    public Person Author { get; set; }
+    public string Title { get; set; }
+    public double Rating { get; set; }
+
+    public Article(Person author, string title, double rating)
+    {
+        Author = author;
+        Title = title;
+        Rating = rating;
+    }
+
+    public Article()
+    {
+        Author = new Person();
+        Title = "Без названия";
+        Rating = 0.0;
+    }
+
+    // Реализация интерфейса IRateAndCopy
+    double IRateAndCopy.Rating => Rating;
+
+    public object DeepCopy()
+    {
+        Person copiedAuthor = (Person)Author?.DeepCopy();
+        return new Article(copiedAuthor, Title, Rating);
+    }
+
+    // Переопределение метода Equals
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+            return false;
+
+        Article other = (Article)obj;
+        return Equals(Author, other.Author) && 
+               Title == other.Title && 
+               Rating == other.Rating;
+    }
+
+    // Реализация IEquatable<T>
+    public bool Equals(Article other)
+    {
+        if (other == null) return false;
+        return Equals(Author, other.Author) && 
+               Title == other.Title && 
+               Rating == other.Rating;
+    }
+
+    // Переопределение GetHashCode
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 + (Author != null ? Author.GetHashCode() : 0);
+            hash = hash * 23 + (Title != null ? Title.GetHashCode() : 0);
+            hash = hash * 23 + Rating.GetHashCode();
+            return hash;
+        }
+    }
+
+    // Переопределение операторов == и !=
+    public static bool operator ==(Article left, Article right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+        if (left is null || right is null)
+            return false;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Article left, Article right)
+    {
+        return !(left == right);
+    }
+
+    public override string ToString()
+        => $"Статья: {Title}, Автор: {Author?.ToShortString()}, Рейтинг: {Rating:F1}";
+}
+
+// Вспомогательный класс для итератора
+class MagazineEnumerator : IEnumerator
+{
+    private ArrayList articles;
+    private ArrayList editors;
+    private int position = -1;
+
+    public MagazineEnumerator(ArrayList articles, ArrayList editors)
+    {
+        this.articles = articles;
+        this.editors = editors;
+    }
+
+    public object Current => articles[position];
+
+    public bool MoveNext()
+    {
+        position++;
+        while (position < articles.Count)
+        {
+            Article article = (Article)articles[position];
+            bool isEditor = false;
+            
+            foreach (Person editor in editors)
+            {
+                if (article.Author != null && article.Author.Equals(editor))
+                {
+                    isEditor = true;
+                    break;
+                }
+            }
+            
+            if (!isEditor)
+                return true;
+            
+            position++;
+        }
+        return false;
+    }
+
+    public void Reset()
+    {
+        position = -1;
+    }
+}
+
+class Magazine : Edition, IRateAndCopy, IEnumerable
+{
+    private Frequency frequency;
+    private ArrayList editors;
+    private ArrayList articles;
+
+    public Magazine(string title, Frequency frequency, DateTime releaseDate, int circulation)
+        : base(title, releaseDate, circulation)
+    {
+        this.frequency = frequency;
+        editors = new ArrayList();
+        articles = new ArrayList();
+    }
+
+    public Magazine()
+    {
+        title = "Без названия";
+        frequency = Frequency.Monthly;
+        releaseDate = DateTime.Today;
+        circulation = 1000;
+        editors = new ArrayList();
+        articles = new ArrayList();
+    }
+
+    public Frequency Frequency
+    {
+        get => frequency;
+        set => frequency = value;
+    }
+
+    public ArrayList Articles
+    {
+        get => articles;
+        set => articles = value ?? new ArrayList();
+    }
+
+    public ArrayList Editors
+    {
+        get => editors;
+        set => editors = value ?? new ArrayList();
+    }
+
+    public Edition EditionData
+    {
+        get => new Edition(title, releaseDate, circulation);
+        set
+        {
+            if (value != null)
+            {
+                title = value.Title;
+                releaseDate = value.ReleaseDate;
+                Circulation = value.Circulation;
+            }
+        }
+    }
+
+    // Средний рейтинг статей
+    public double AverageRating
+    {
+        get
+        {
+            if (articles.Count == 0) return 0.0;
+            double sum = 0;
+            foreach (Article a in articles)
+                sum += a.Rating;
+            return sum / articles.Count;
+        }
+    }
+
+    // Индексатор
+    public bool this[Frequency f] => frequency == f;
+
+    // Добавление статей
+    public void AddArticles(params Article[] newArticles)
+    {
+        if (newArticles == null || newArticles.Length == 0) return;
+
+        foreach (var article in newArticles)
+        {
+            articles.Add(article);
+        }
+    }
+
+    // Добавление редакторов
+    public void AddEditors(params Person[] newEditors)
+    {
+        if (newEditors == null || newEditors.Length == 0) return;
+
+        foreach (var editor in newEditors)
+        {
+            editors.Add(editor);
+        }
+    }
+
+    // Реализация интерфейса IRateAndCopy
+    double IRateAndCopy.Rating => AverageRating;
+
+    public new object DeepCopy()
+    {
+        Magazine copy = new Magazine(title, frequency, releaseDate, circulation);
+        
+        // Копируем редакторов
+        foreach (Person editor in editors)
+        {
+            copy.editors.Add(editor.DeepCopy());
+        }
+        
+        // Копируем статьи
+        foreach (Article article in articles)
+        {
+            if (article is IRateAndCopy rateable)
+                copy.articles.Add(rateable.DeepCopy());
+        }
+        
+        return copy;
+    }
+
+    // Итераторы
+    public IEnumerable GetArticlesWithRatingGreaterThan(double minRating)
+    {
+        foreach (Article article in articles)
+        {
+            if (article.Rating > minRating)
+                yield return article;
+        }
+    }
+
+    public IEnumerable GetArticlesWithTitleContaining(string searchString)
+    {
+        foreach (Article article in articles)
+        {
+            if (article.Title != null && article.Title.Contains(searchString))
+                yield return article;
+        }
+    }
+
+    // Итераторы для дополнительного задания
+    public IEnumerable GetArticlesByEditors()
+    {
+        foreach (Article article in articles)
+        {
+            foreach (Person editor in editors)
+            {
+                if (article.Author != null && article.Author.Equals(editor))
+                {
+                    yield return article;
+                    break;
+                }
+            }
+        }
+    }
+
+    public IEnumerable GetEditorsWithoutArticles()
+    {
+        foreach (Person editor in editors)
+        {
+            bool hasArticle = false;
+            foreach (Article article in articles)
+            {
+                if (article.Author != null && article.Author.Equals(editor))
+                {
+                    hasArticle = true;
+                    break;
+                }
+            }
+            
+            if (!hasArticle)
+                yield return editor;
+        }
+    }
+
+    // Реализация IEnumerable для статей, авторы которых не являются редакторами
+    public IEnumerator GetEnumerator()
+    {
+        return new MagazineEnumerator(articles, editors);
+    }
+
+    public override string ToString()
+    {
+        string result = base.ToString() + $"\n" +
+                       $"Периодичность: {frequency}\n" +
+                       $"Средний рейтинг: {AverageRating:F2}\n" +
+                       $"Количество статей: {articles.Count}\n" +
+                       $"Количество редакторов: {editors.Count}\n";
+
+        if (editors.Count > 0)
+        {
+            result += "Редакторы:\n";
+            foreach (Person e in editors)
+                result += $"- {e.ToShortString()}\n";
+        }
+
+        if (articles.Count > 0)
+        {
+            result += "Статьи:\n";
+            foreach (Article a in articles)
+                result += $"- {a}\n";
+        }
+        return result;
+    }
+
+    public virtual new string ToShortString()
+    {
+        return $"Журнал: {title}, Периодичность: {frequency}, " +
+               $"Дата: {releaseDate:dd.MM.yyyy}, Тираж: {circulation}, " +
+               $"Средний рейтинг: {AverageRating:F2}, " +
+               $"Статей: {articles.Count}, Редакторов: {editors.Count}";
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("=== Часть 2: Работа с классами Edition, Magazine и интерфейсами ===\n");
+
+        // 1. Создание двух объектов типа Edition с совпадающими данными
+        Console.WriteLine("1. Тестирование класса Edition:");
+        Edition edition1 = new Edition("Наука и техника", new DateTime(2025, 4, 1), 50000);
+        Edition edition2 = new Edition("Наука и техника", new DateTime(2025, 4, 1), 50000);
+        
+        Console.WriteLine($"Ссылки равны: {ReferenceEquals(edition1, edition2)}");
+        Console.WriteLine($"Объекты равны: {edition1.Equals(edition2)}");
+        Console.WriteLine($"Хэш-код edition1: {edition1.GetHashCode()}");
+        Console.WriteLine($"Хэш-код edition2: {edition2.GetHashCode()}");
+        Console.WriteLine();
+
+        // 10. Тестирование исключения при некорректном тираже
+        Console.WriteLine("10. Тестирование исключения:");
+        try
+        {
+            edition1.Circulation = -100;
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            Console.WriteLine($"Исключение: {ex.Message}");
+        }
+        Console.WriteLine();
+
+        // 11. Создание объекта Magazine и добавление данных
+        Console.WriteLine("11. Создание и заполнение объекта Magazine:");
+        Magazine magazine = new Magazine("Научные открытия", Frequency.Monthly, 
+            new DateTime(2025, 4, 1), 100000);
+
+        // Создание персоналий
+        Person editor1 = new Person("Иванов", "Иван", new DateTime(1970, 5, 15));
+        Person editor2 = new Person("Петрова", "Анна", new DateTime(1985, 8, 20));
+        Person author1 = new Person("Сидоров", "Петр", new DateTime(1990, 3, 10));
+        Person author2 = new Person("Козлова", "Мария", new DateTime(1988, 11, 25));
+        Person author3 = new Person("Иванов", "Иван", new DateTime(1970, 5, 15)); // Также редактор
+
+        // Добавление редакторов
+        magazine.AddEditors(editor1, editor2, author3);
+
+        // Добавление статей
+        magazine.AddArticles(
+            new Article(author1, "Квантовые вычисления", 9.5),
+            new Article(author2, "Искусственный интеллект в медицине", 8.7),
+            new Article(author3, "Новые материалы в энергетике", 9.9),
+            new Article(author1, "Нанотехнологии будущего", 7.8),
+            new Article(new Person("Новиков", "Алексей", new DateTime(1995, 2, 14)), 
+                "Биотехнологии и экология", 8.2)
+        );
+
+        Console.WriteLine(magazine.ToString());
+        Console.WriteLine();
+
+        // 12. Вывод свойства EditionData
+        Console.WriteLine("12. Свойство EditionData:");
+        Edition magEdition = magazine.EditionData;
+        Console.WriteLine(magEdition.ToString());
+        Console.WriteLine();
+
+        // 13. Тестирование DeepCopy
+        Console.WriteLine("13. Тестирование DeepCopy:");
+        Magazine magazineCopy = (Magazine)magazine.DeepCopy();
+        
+        // Изменяем исходный объект
+        magazine.Title = "ИЗМЕНЕННЫЙ ЖУРНАЛ";
+        magazine.AddArticles(new Article(author2, "Новая статья", 5.0));
+        
+        Console.WriteLine("Исходный журнал (после изменений):");
+        Console.WriteLine(magazine.ToShortString());
+        Console.WriteLine("\nКопия (должна остаться без изменений):");
+        Console.WriteLine(magazineCopy.ToShortString());
+        Console.WriteLine();
+
+        // 14. Итератор для статей с рейтингом больше заданного значения
+        Console.WriteLine("14. Статьи с рейтингом > 8.5:");
+        foreach (Article article in magazine.GetArticlesWithRatingGreaterThan(8.5))
+        {
+            Console.WriteLine($"- {article}");
+        }
+        Console.WriteLine();
+
+        // 15. Итератор для статей с заданной строкой в названии
+        Console.WriteLine("15. Статьи содержащие 'техн' в названии:");
+        foreach (Article article in magazine.GetArticlesWithTitleContaining("техн"))
+        {
+            Console.WriteLine($"- {article}");
+        }
+        Console.WriteLine();
+
+        // 16. Статьи, авторы которых не являются редакторами (используя IEnumerable)
+        Console.WriteLine("16. Статьи, авторы которых не являются редакторами:");
+        foreach (Article article in magazine)
+        {
+            Console.WriteLine($"- {article}");
+        }
+        Console.WriteLine();
+
+        // 17. Статьи, авторы которых являются редакторами
+        Console.WriteLine("17. Статьи, авторы которых являются редакторами:");
+        foreach (Article article in magazine.GetArticlesByEditors())
+        {
+            Console.WriteLine($"- {article}");
+        }
+        Console.WriteLine();
+
+        // 18. Редакторы без статей
+        Console.WriteLine("18. Редакторы без статей в журнале:");
+        foreach (Person editor in magazine.GetEditorsWithoutArticles())
+        {
+            Console.WriteLine($"- {editor.ToShortString()}");
+        }
+        Console.WriteLine();
+
+        // Дополнительная проверка операторов сравнения
+        Console.WriteLine("Дополнительно: Проверка операторов сравнения Person:");
+        Person p1 = new Person("Иванов", "Иван", new DateTime(1970, 5, 15));
+        Person p2 = new Person("Иванов", "Иван", new DateTime(1970, 5, 15));
+        Person p3 = new Person("Петров", "Петр", new DateTime(1980, 6, 20));
+        
+        Console.WriteLine($"p1 == p2: {p1 == p2} (ожидается: True)");
+        Console.WriteLine($"p1 != p3: {p1 != p3} (ожидается: True)");
+        Console.WriteLine($"p1.Equals(p2): {p1.Equals(p2)} (ожидается: True)");
+        Console.WriteLine($"p1.Equals(p3): {p1.Equals(p3)} (ожидается: False)");
+    }
+}
